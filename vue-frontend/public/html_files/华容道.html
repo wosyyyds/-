@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>华容道游戏 - 键盘控制版</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #1a2a6c, #b21f1f, #fdbb2d);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            color: #fff;
+        }
+        
+        .container {
+            max-width: 800px;
+            width: 100%;
+            text-align: center;
+        }
+        
+        header {
+            margin-bottom: 20px;
+        }
+        
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+        
+        .game-info {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .controls-info {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+            font-size: 0.9rem;
+        }
+        
+        .game-board {
+            position: relative;
+            width: 100%;
+            max-width: 500px;
+            margin: 0 auto;
+            background: #8B4513;
+            border: 8px solid #5D4037;
+            border-radius: 5px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            overflow: hidden;
+            outline: none;
+        }
+        
+        .board-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            grid-template-rows: repeat(5, 1fr);
+            aspect-ratio: 4/5;
+            position: relative;
+        }
+        
+        .cell {
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .piece {
+            position: absolute;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: rgba(255, 255, 255, 0.8);
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.7);
+            transition: all 0.3s ease;
+            user-select: none;
+            box-shadow: inset 0 0 10px rgba(255, 255, 255, 0.2);
+        }
+        
+        .piece.selected {
+            transform: scale(1.05);
+            box-shadow: 0 0 0 3px #FFD700, 0 5px 15px rgba(0, 0, 0, 0.5);
+            z-index: 5;
+        }
+        
+        .piece.moving {
+            transition: all 0.2s ease;
+        }
+        
+        .piece.cao-cao {
+            background: linear-gradient(135deg, #c0392b, #e74c3c);
+            border: 2px solid #922B21;
+        }
+        
+        .piece.zhang-fei {
+            background: linear-gradient(135deg, #2980b9, #3498db);
+            border: 2px solid #1B4F72;
+        }
+        
+        .piece.zhao-yun {
+            background: linear-gradient(135deg, #27ae60, #2ecc71);
+            border: 2px solid #186A3B;
+        }
+        
+        .piece.machao {
+            background: linear-gradient(135deg, #8e44ad, #9b59b6);
+            border: 2px solid #5B2C6F;
+        }
+        
+        .piece.guan-yu {
+            background: linear-gradient(135deg, #d35400, #e67e22);
+            border: 2px solid #784212;
+        }
+        
+        .piece.huang-zhong {
+            background: linear-gradient(135deg, #16a085, #1abc9c);
+            border: 2px solid #0E6251;
+        }
+        
+        .piece.soldier {
+            background: linear-gradient(135deg, #7f8c8d, #95a5a6);
+            border: 2px solid #424949;
+        }
+        
+        .controls {
+            margin-top: 20px;
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        
+        button {
+            padding: 12px 25px;
+            font-size: 1rem;
+            background: linear-gradient(to bottom, #3498db, #2980b9);
+            color: white;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 8px rgba(0, 0, 0, 0.2);
+            background: linear-gradient(to bottom, #2980b9, #21618C);
+        }
+        
+        button:active {
+            transform: translateY(1px);
+        }
+        
+        .victory-message {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.5s;
+        }
+        
+        .victory-message.show {
+            opacity: 1;
+            pointer-events: all;
+        }
+        
+        .victory-content {
+            background: linear-gradient(135deg, #1a2a6c, #b21f1f);
+            padding: 40px;
+            border-radius: 15px;
+            text-align: center;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+        
+        .victory-content h2 {
+            font-size: 2.5rem;
+            margin-bottom: 20px;
+            color: #FFD700;
+        }
+        
+        .victory-content p {
+            margin-bottom: 30px;
+            font-size: 1.2rem;
+        }
+        
+        .key-hint {
+            display: inline-block;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 5px 10px;
+            border-radius: 5px;
+            margin: 0 5px;
+            font-family: monospace;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        @media (max-width: 600px) {
+            h1 {
+                font-size: 2rem;
+            }
+            
+            .game-board {
+                max-width: 100%;
+            }
+            
+            button {
+                padding: 10px 20px;
+                font-size: 0.9rem;
+            }
+            
+            .controls-info {
+                font-size: 0.8rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>华容道游戏 - 键盘控制版</h1>
+            <div class="game-info">
+                <p>使用键盘移动滑块，让红色曹操方块从底部中间出口移出</p>
+                <div class="controls-info">
+                    <p>控制方式: 
+                        <span class="key-hint">Tab</span>选择滑块, 
+                        <span class="key-hint">方向键</span>移动, 
+                        <span class="key-hint">空格</span>快速选择曹操
+                    </p>
+                </div>
+            </div>
+        </header>
+        
+        <div class="game-board" id="gameBoard" tabindex="0">
+            <div class="board-grid">
+                <!-- 棋盘格子由JS生成 -->
+            </div>
+            <!-- 滑块由JS生成 -->
+        </div>
+        
+        <div class="controls">
+            <button id="restart">重新开始</button>
+            <button id="hint">提示</button>
+            <button id="selectCaoCao">选择曹操</button>
+        </div>
+    </div>
+    
+    <div class="victory-message" id="victoryMessage">
+        <div class="victory-content">
+            <h2>恭喜过关！</h2>
+            <p>你成功帮助曹操逃出了华容道</p>
+            <button id="playAgain">再玩一次</button>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // 游戏配置 - 修正了初始布局，避免兵覆盖关羽
+            const config = {
+                rows: 5,
+                cols: 4,
+                cellSize: 0, // 将在初始化时计算
+                pieces: [
+                    { id: 'cao-cao', name: '曹操', width: 2, height: 2, top: 0, left: 1, type: 'cao-cao' },
+                    { id: 'zhang-fei', name: '张飞', width: 1, height: 2, top: 0, left: 0, type: 'zhang-fei' },
+                    { id: 'zhao-yun', name: '赵云', width: 1, height: 2, top: 0, left: 3, type: 'zhao-yun' },
+                    { id: 'machao', name: '马超', width: 1, height: 2, top: 2, left: 0, type: 'machao' },
+                    { id: 'guan-yu', name: '关羽', width: 2, height: 1, top: 3, left: 1, type: 'guan-yu' }, // 修改位置
+                    { id: 'huang-zhong', name: '黄忠', width: 1, height: 2, top: 2, left: 3, type: 'huang-zhong' },
+                    { id: 'soldier1', name: '兵', width: 1, height: 1, top: 2, left: 1, type: 'soldier' },
+                    { id: 'soldier2', name: '兵', width: 1, height: 1, top: 2, left: 2, type: 'soldier' },
+                    { id: 'soldier3', name: '兵', width: 1, height: 1, top: 3, left: 0, type: 'soldier' }, // 修改位置
+                    { id: 'soldier4', name: '兵', width: 1, height: 1, top: 3, left: 3, type: 'soldier' }  // 修改位置
+                ]
+            };
+            
+            // 游戏状态
+            let gameState = {
+                pieces: [],
+                selectedPiece: null,
+                selectedIndex: -1
+            };
+            
+            // DOM元素
+            const boardGrid = document.querySelector('.board-grid');
+            const gameBoard = document.getElementById('gameBoard');
+            const restartBtn = document.getElementById('restart');
+            const hintBtn = document.getElementById('hint');
+            const selectCaoCaoBtn = document.getElementById('selectCaoCao');
+            const victoryMessage = document.getElementById('victoryMessage');
+            const playAgainBtn = document.getElementById('playAgain');
+            
+            // 初始化游戏
+            function initGame() {
+                // 创建棋盘格子
+                createBoardGrid();
+                
+                // 创建滑块
+                createPieces();
+                
+                // 计算单元格大小
+                calculateCellSize();
+                
+                // 添加事件监听器
+                addEventListeners();
+                
+                // 隐藏胜利消息
+                victoryMessage.classList.remove('show');
+                
+                // 聚焦到游戏板
+                gameBoard.focus();
+            }
+            
+            // 创建棋盘格子
+            function createBoardGrid() {
+                boardGrid.innerHTML = '';
+                const totalCells = config.rows * config.cols;
+                
+                for (let i = 0; i < totalCells; i++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'cell';
+                    boardGrid.appendChild(cell);
+                }
+                
+                // 添加出口标记
+                const exitCell = document.createElement('div');
+                exitCell.style.gridArea = '5 / 2 / 6 / 3';
+                exitCell.style.background = 'rgba(255, 255, 0, 0.2)';
+                exitCell.style.border = '2px dashed rgba(255, 255, 0, 0.5)';
+                exitCell.style.borderRadius = '0 0 10px 10px';
+                boardGrid.appendChild(exitCell);
+            }
+            
+            // 创建滑块
+            function createPieces() {
+                gameState.pieces = [];
+                
+                config.pieces.forEach(pieceConfig => {
+                    const piece = document.createElement('div');
+                    piece.id = pieceConfig.id;
+                    piece.className = `piece ${pieceConfig.type}`;
+                    piece.textContent = pieceConfig.name;
+                    piece.tabIndex = 0; // 使滑块可获得焦点
+                    
+                    // 设置滑块位置和大小
+                    piece.style.width = `calc(${pieceConfig.width} * var(--cell-size))`;
+                    piece.style.height = `calc(${pieceConfig.height} * var(--cell-size))`;
+                    piece.style.left = `calc(${pieceConfig.left} * var(--cell-size))`;
+                    piece.style.top = `calc(${pieceConfig.top} * var(--cell-size))`;
+                    
+                    // 存储滑块数据
+                    piece.dataset.width = pieceConfig.width;
+                    piece.dataset.height = pieceConfig.height;
+                    piece.dataset.left = pieceConfig.left;
+                    piece.dataset.top = pieceConfig.top;
+                    
+                    gameBoard.appendChild(piece);
+                    gameState.pieces.push(piece);
+                });
+            }
+            
+            // 计算单元格大小
+            function calculateCellSize() {
+                const boardWidth = gameBoard.offsetWidth;
+                const boardHeight = gameBoard.offsetHeight;
+                
+                // 根据棋盘宽度和高度计算合适的单元格大小
+                const cellWidth = boardWidth / config.cols;
+                const cellHeight = boardHeight / config.rows;
+                
+                // 取较小值确保所有单元格都能显示
+                config.cellSize = Math.min(cellWidth, cellHeight);
+                
+                // 设置CSS变量
+                document.documentElement.style.setProperty('--cell-size', `${config.cellSize}px`);
+            }
+            
+            // 添加事件监听器
+            function addEventListeners() {
+                // 窗口大小改变时重新计算单元格大小
+                window.addEventListener('resize', calculateCellSize);
+                
+                // 重新开始按钮
+                restartBtn.addEventListener('click', resetGame);
+                
+                // 再玩一次按钮
+                playAgainBtn.addEventListener('click', resetGame);
+                
+                // 提示按钮
+                hintBtn.addEventListener('click', showHint);
+                
+                // 选择曹操按钮
+                selectCaoCaoBtn.addEventListener('click', selectCaoCao);
+                
+                // 键盘事件
+                gameBoard.addEventListener('keydown', handleKeyDown);
+                
+                // 点击选择滑块
+                gameState.pieces.forEach(piece => {
+                    piece.addEventListener('click', () => selectPiece(piece));
+                });
+            }
+            
+            // 处理键盘事件
+            function handleKeyDown(e) {
+                // 防止默认行为（如滚动）
+                if ([37, 38, 39, 40, 9, 32].includes(e.keyCode)) {
+                    e.preventDefault();
+                }
+                
+                switch(e.keyCode) {
+                    case 9: // Tab键
+                        e.preventDefault();
+                        if (e.shiftKey) {
+                            selectPreviousPiece();
+                        } else {
+                            selectNextPiece();
+                        }
+                        break;
+                    case 32: // 空格键
+                        selectCaoCao();
+                        break;
+                    case 37: // 左箭头
+                        moveSelectedPiece('left');
+                        break;
+                    case 38: // 上箭头
+                        moveSelectedPiece('up');
+                        break;
+                    case 39: // 右箭头
+                        moveSelectedPiece('right');
+                        break;
+                    case 40: // 下箭头
+                        moveSelectedPiece('down');
+                        break;
+                }
+            }
+            
+            // 选择下一个滑块
+            function selectNextPiece() {
+                if (gameState.pieces.length === 0) return;
+                
+                gameState.selectedIndex = (gameState.selectedIndex + 1) % gameState.pieces.length;
+                selectPiece(gameState.pieces[gameState.selectedIndex]);
+            }
+            
+            // 选择上一个滑块
+            function selectPreviousPiece() {
+                if (gameState.pieces.length === 0) return;
+                
+                gameState.selectedIndex = (gameState.selectedIndex - 1 + gameState.pieces.length) % gameState.pieces.length;
+                selectPiece(gameState.pieces[gameState.selectedIndex]);
+            }
+            
+            // 选择特定滑块
+            function selectPiece(piece) {
+                // 取消之前的选择
+                if (gameState.selectedPiece) {
+                    gameState.selectedPiece.classList.remove('selected');
+                }
+                
+                // 选择新的滑块
+                gameState.selectedPiece = piece;
+                gameState.selectedPiece.classList.add('selected');
+                gameState.selectedIndex = gameState.pieces.indexOf(piece);
+                
+                // 聚焦到选中的滑块
+                gameState.selectedPiece.focus();
+            }
+            
+            // 选择曹操
+            function selectCaoCao() {
+                const caoCaos = gameState.pieces.filter(piece => piece.id === 'cao-cao');
+                if (caoCaos.length > 0) {
+                    selectPiece(caoCaos[0]);
+                }
+            }
+            
+            // 移动选中的滑块
+            function moveSelectedPiece(direction) {
+                if (!gameState.selectedPiece) return;
+                
+                const piece = gameState.selectedPiece;
+                const width = parseInt(piece.dataset.width);
+                const height = parseInt(piece.dataset.height);
+                let left = parseInt(piece.dataset.left);
+                let top = parseInt(piece.dataset.top);
+                
+                // 根据方向计算新位置
+                switch(direction) {
+                    case 'left':
+                        if (left > 0 && canMoveTo(piece, left - 1, top)) {
+                            left--;
+                        }
+                        break;
+                    case 'up':
+                        if (top > 0 && canMoveTo(piece, left, top - 1)) {
+                            top--;
+                        }
+                        break;
+                    case 'right':
+                        if (left + width < config.cols && canMoveTo(piece, left + 1, top)) {
+                            left++;
+                        }
+                        break;
+                    case 'down':
+                        if (top + height < config.rows && canMoveTo(piece, left, top + 1)) {
+                            top++;
+                        }
+                        break;
+                }
+                
+                // 如果位置有变化，移动滑块
+                if (left !== parseInt(piece.dataset.left) || top !== parseInt(piece.dataset.top)) {
+                    // 添加移动动画类
+                    piece.classList.add('moving');
+                    
+                    // 更新位置
+                    piece.style.left = `calc(${left} * var(--cell-size))`;
+                    piece.style.top = `calc(${top} * var(--cell-size))`;
+                    piece.dataset.left = left;
+                    piece.dataset.top = top;
+                    
+                    // 移除移动动画类
+                    setTimeout(() => {
+                        piece.classList.remove('moving');
+                    }, 200);
+                    
+                    // 检查是否胜利
+                    checkVictory();
+                }
+            }
+            
+            // 检查是否可以移动到指定位置
+            function canMoveTo(piece, newLeft, newTop) {
+                const width = parseInt(piece.dataset.width);
+                const height = parseInt(piece.dataset.height);
+                
+                // 检查是否超出边界
+                if (newLeft < 0 || newTop < 0 || 
+                    newLeft + width > config.cols || 
+                    newTop + height > config.rows) {
+                    return false;
+                }
+                
+                // 检查是否与其他滑块重叠
+                for (const otherPiece of gameState.pieces) {
+                    if (otherPiece === piece) continue;
+                    
+                    const otherLeft = parseInt(otherPiece.dataset.left);
+                    const otherTop = parseInt(otherPiece.dataset.top);
+                    const otherWidth = parseInt(otherPiece.dataset.width);
+                    const otherHeight = parseInt(otherPiece.dataset.height);
+                    
+                    // 检查矩形重叠
+                    if (newLeft < otherLeft + otherWidth &&
+                        newLeft + width > otherLeft &&
+                        newTop < otherTop + otherHeight &&
+                        newTop + height > otherTop) {
+                        return false;
+                    }
+                }
+                
+                return true;
+            }
+            
+            // 检查是否胜利
+            function checkVictory() {
+                const caoCaos = gameState.pieces.filter(piece => piece.id === 'cao-cao');
+                if (caoCaos.length === 0) return;
+                
+                const caoCao = caoCaos[0];
+                const caoCaoTop = parseInt(caoCao.dataset.top);
+                
+                // 如果曹操滑块的顶部位置等于棋盘行数减2（即到达底部）
+                if (caoCaoTop === config.rows - 2) {
+                    // 检查是否在中间列
+                    const caoCaoLeft = parseInt(caoCao.dataset.left);
+                    if (caoCaoLeft === 1) {
+                        showVictoryMessage();
+                    }
+                }
+            }
+            
+            // 显示胜利消息
+            function showVictoryMessage() {
+                victoryMessage.classList.add('show');
+            }
+            
+            // 显示提示
+            function showHint() {
+                alert('提示：先移动上方的士兵，为曹操让出向下移动的空间。');
+            }
+            
+            // 重置游戏
+            function resetGame() {
+                // 移除所有滑块
+                gameState.pieces.forEach(piece => {
+                    gameBoard.removeChild(piece);
+                });
+                
+                // 重置游戏状态
+                gameState.selectedPiece = null;
+                gameState.selectedIndex = -1;
+                
+                // 重新初始化游戏
+                initGame();
+            }
+            
+            // 初始化游戏
+            initGame();
+        });
+    </script>
+</body>
+</html>

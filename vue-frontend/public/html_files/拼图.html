@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>拼图游戏</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 900px;
+            width: 100%;
+            background-color: rgba(255, 255, 255, 0.9);
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+        }
+        
+        header {
+            background: linear-gradient(to right, #4a00e0, #8e2de2);
+            color: white;
+            text-align: center;
+            padding: 20px;
+        }
+        
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+        
+        .game-info {
+            display: flex;
+            justify-content: space-around;
+            padding: 15px;
+            background-color: #f5f5f5;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        .info-item {
+            text-align: center;
+        }
+        
+        .info-label {
+            font-size: 0.9rem;
+            color: #666;
+        }
+        
+        .info-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #4a00e0;
+        }
+        
+        .game-area {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 30px;
+        }
+        
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 25px;
+            width: 100%;
+        }
+        
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 50px;
+            background: linear-gradient(to right, #4a00e0, #8e2de2);
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        select {
+            padding: 10px 15px;
+            border-radius: 50px;
+            border: 2px solid #4a00e0;
+            background-color: white;
+            font-weight: bold;
+            outline: none;
+        }
+        
+        .puzzle-container {
+            width: 400px;
+            height: 400px;
+            margin: 0 auto;
+            position: relative;
+            border: 2px solid #4a00e0;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .puzzle-piece {
+            position: absolute;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(255, 255, 255, 0.5);
+        }
+        
+        .puzzle-piece:hover {
+            transform: scale(1.02);
+            z-index: 10;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+        }
+        
+        .empty-piece {
+            background-color: #f0f0f0;
+        }
+        
+        .completed-message {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(74, 0, 224, 0.9);
+            color: white;
+            padding: 30px 50px;
+            border-radius: 15px;
+            text-align: center;
+            z-index: 100;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+        
+        .completed-message h2 {
+            margin-bottom: 15px;
+            font-size: 2rem;
+        }
+        
+        .upload-area {
+            margin-top: 20px;
+            text-align: center;
+        }
+        
+        #imageUpload {
+            display: none;
+        }
+        
+        .upload-label {
+            display: inline-block;
+            padding: 10px 20px;
+            background: linear-gradient(to right, #00b09b, #96c93d);
+            color: white;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .upload-label:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        @media (max-width: 768px) {
+            .puzzle-container {
+                width: 300px;
+                height: 300px;
+            }
+            
+            h1 {
+                font-size: 2rem;
+            }
+            
+            .controls {
+                flex-direction: column;
+                align-items: center;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .puzzle-container {
+                width: 250px;
+                height: 250px;
+            }
+            
+            .game-info {
+                flex-direction: column;
+                gap: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>拼图游戏</h1>
+            <p>拖动拼图块完成图片拼图</p>
+        </header>
+        
+        <div class="game-info">
+            <div class="info-item">
+                <div class="info-label">时间</div>
+                <div class="info-value" id="timer">00:00</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">步数</div>
+                <div class="info-value" id="moves">0</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">难度</div>
+                <div class="info-value" id="difficulty">3×3</div>
+            </div>
+        </div>
+        
+        <div class="game-area">
+            <div class="controls">
+                <button id="startBtn">开始游戏</button>
+                <button id="restartBtn">重新开始</button>
+                <select id="difficultySelect">
+                    <option value="3">简单 (3×3)</option>
+                    <option value="4">中等 (4×4)</option>
+                    <option value="5">困难 (5×5)</option>
+                </select>
+            </div>
+            
+            <div class="puzzle-container" id="puzzleContainer">
+                <div class="completed-message" id="completedMessage">
+                    <h2>恭喜！</h2>
+                    <p>你成功完成了拼图！</p>
+                    <p>用时: <span id="finalTime">00:00</span></p>
+                    <p>步数: <span id="finalMoves">0</span></p>
+                    <button id="playAgainBtn">再玩一次</button>
+                </div>
+            </div>
+            
+            <div class="upload-area">
+                <input type="file" id="imageUpload" accept="image/*">
+                <label for="imageUpload" class="upload-label">上传自定义图片</label>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 游戏状态变量
+        let gameStarted = false;
+        let timerInterval;
+        let seconds = 0;
+        let moves = 0;
+        let difficulty = 3; // 默认3x3
+        let pieces = [];
+        let emptyIndex;
+        let imageUrl = 'https://picsum.photos/400'; // 默认图片
+        
+        // DOM元素
+        const puzzleContainer = document.getElementById('puzzleContainer');
+        const timerElement = document.getElementById('timer');
+        const movesElement = document.getElementById('moves');
+        const difficultyElement = document.getElementById('difficulty');
+        const difficultySelect = document.getElementById('difficultySelect');
+        const startBtn = document.getElementById('startBtn');
+        const restartBtn = document.getElementById('restartBtn');
+        const completedMessage = document.getElementById('completedMessage');
+        const finalTimeElement = document.getElementById('finalTime');
+        const finalMovesElement = document.getElementById('finalMoves');
+        const playAgainBtn = document.getElementById('playAgainBtn');
+        const imageUpload = document.getElementById('imageUpload');
+        
+        // 初始化游戏
+        function initGame() {
+            // 重置游戏状态
+            clearInterval(timerInterval);
+            seconds = 0;
+            moves = 0;
+            updateTimer();
+            updateMoves();
+            
+            // 设置难度
+            difficulty = parseInt(difficultySelect.value);
+            difficultyElement.textContent = `${difficulty}×${difficulty}`;
+            
+            // 清空拼图容器
+            puzzleContainer.innerHTML = '';
+            puzzleContainer.appendChild(completedMessage);
+            
+            // 创建拼图碎片
+            createPuzzlePieces();
+            
+            // 打乱拼图
+            shufflePuzzle();
+            
+            // 隐藏完成消息
+            completedMessage.style.display = 'none';
+            
+            // 更新游戏状态
+            gameStarted = true;
+        }
+        
+        // 创建拼图碎片
+        function createPuzzlePieces() {
+            const containerSize = puzzleContainer.offsetWidth;
+            const pieceSize = containerSize / difficulty;
+            
+            pieces = [];
+            
+            for (let i = 0; i < difficulty * difficulty; i++) {
+                const piece = document.createElement('div');
+                piece.className = 'puzzle-piece';
+                piece.style.width = `${pieceSize}px`;
+                piece.style.height = `${pieceSize}px`;
+                
+                if (i === difficulty * difficulty - 1) {
+                    // 最后一块是空的
+                    piece.classList.add('empty-piece');
+                    emptyIndex = i;
+                } else {
+                    // 计算背景位置
+                    const row = Math.floor(i / difficulty);
+                    const col = i % difficulty;
+                    
+                    piece.style.backgroundImage = `url(${imageUrl})`;
+                    piece.style.backgroundSize = `${containerSize}px ${containerSize}px`;
+                    piece.style.backgroundPosition = `-${col * pieceSize}px -${row * pieceSize}px`;
+                    
+                    // 设置位置
+                    piece.style.left = `${col * pieceSize}px`;
+                    piece.style.top = `${row * pieceSize}px`;
+                    
+                    // 添加点击事件
+                    piece.addEventListener('click', () => movePiece(i));
+                }
+                
+                puzzleContainer.appendChild(piece);
+                pieces.push(piece);
+            }
+        }
+        
+        // 打乱拼图
+        function shufflePuzzle() {
+            // 执行多次随机移动来打乱拼图
+            for (let i = 0; i < difficulty * difficulty * 50; i++) {
+                const possibleMoves = getPossibleMoves();
+                const randomMove = possibleMoves[Math.floor(Math.random() * possibleMoves.length)];
+                swapPieces(emptyIndex, randomMove);
+                emptyIndex = randomMove;
+            }
+            
+            // 重置步数
+            moves = 0;
+            updateMoves();
+        }
+        
+        // 获取可以移动的拼图块索引
+        function getPossibleMoves() {
+            const moves = [];
+            const emptyRow = Math.floor(emptyIndex / difficulty);
+            const emptyCol = emptyIndex % difficulty;
+            
+            // 上
+            if (emptyRow > 0) moves.push(emptyIndex - difficulty);
+            // 下
+            if (emptyRow < difficulty - 1) moves.push(emptyIndex + difficulty);
+            // 左
+            if (emptyCol > 0) moves.push(emptyIndex - 1);
+            // 右
+            if (emptyCol < difficulty - 1) moves.push(emptyIndex + 1);
+            
+            return moves;
+        }
+        
+        // 移动拼图块
+        function movePiece(index) {
+            if (!gameStarted) return;
+            
+            const possibleMoves = getPossibleMoves();
+            if (possibleMoves.includes(index)) {
+                // 交换位置
+                swapPieces(emptyIndex, index);
+                
+                // 更新空块位置
+                emptyIndex = index;
+                
+                // 增加步数
+                moves++;
+                updateMoves();
+                
+                // 检查是否完成
+                checkCompletion();
+            }
+        }
+        
+        // 交换两个拼图块的位置
+        function swapPieces(index1, index2) {
+            const piece1 = pieces[index1];
+            const piece2 = pieces[index2];
+            
+            // 交换位置
+            const tempLeft = piece1.style.left;
+            const tempTop = piece1.style.top;
+            
+            piece1.style.left = piece2.style.left;
+            piece1.style.top = piece2.style.top;
+            
+            piece2.style.left = tempLeft;
+            piece2.style.top = tempTop;
+            
+            // 交换数组中的位置
+            pieces[index1] = piece2;
+            pieces[index2] = piece1;
+        }
+        
+        // 检查拼图是否完成
+        function checkCompletion() {
+            for (let i = 0; i < pieces.length; i++) {
+                const row = Math.floor(i / difficulty);
+                const col = i % difficulty;
+                
+                const expectedLeft = col * (puzzleContainer.offsetWidth / difficulty);
+                const expectedTop = row * (puzzleContainer.offsetWidth / difficulty);
+                
+                const piece = pieces[i];
+                const actualLeft = parseInt(piece.style.left);
+                const actualTop = parseInt(piece.style.top);
+                
+                if (actualLeft !== expectedLeft || actualTop !== expectedTop) {
+                    return; // 有一块位置不对，游戏未完成
+                }
+            }
+            
+            // 所有拼图块位置正确，游戏完成
+            gameCompleted();
+        }
+        
+        // 游戏完成
+        function gameCompleted() {
+            gameStarted = false;
+            clearInterval(timerInterval);
+            
+            // 显示完成消息
+            finalTimeElement.textContent = timerElement.textContent;
+            finalMovesElement.textContent = moves;
+            completedMessage.style.display = 'block';
+        }
+        
+        // 更新计时器
+        function updateTimer() {
+            const minutes = Math.floor(seconds / 60).toString().padStart(2, '0');
+            const secs = (seconds % 60).toString().padStart(2, '0');
+            timerElement.textContent = `${minutes}:${secs}`;
+        }
+        
+        // 更新步数
+        function updateMoves() {
+            movesElement.textContent = moves;
+        }
+        
+        // 开始计时
+        function startTimer() {
+            if (timerInterval) clearInterval(timerInterval);
+            
+            timerInterval = setInterval(() => {
+                seconds++;
+                updateTimer();
+            }, 1000);
+        }
+        
+        // 事件监听
+        startBtn.addEventListener('click', () => {
+            if (!gameStarted) {
+                initGame();
+                startTimer();
+            }
+        });
+        
+        restartBtn.addEventListener('click', () => {
+            initGame();
+            if (gameStarted) {
+                startTimer();
+            }
+        });
+        
+        playAgainBtn.addEventListener('click', () => {
+            initGame();
+            startTimer();
+        });
+        
+        difficultySelect.addEventListener('change', () => {
+            if (gameStarted) {
+                initGame();
+                startTimer();
+            }
+        });
+        
+        imageUpload.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    imageUrl = event.target.result;
+                    if (gameStarted) {
+                        initGame();
+                        startTimer();
+                    }
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+        
+        // 初始化页面
+        initGame();
+    </script>
+</body>
+</html>

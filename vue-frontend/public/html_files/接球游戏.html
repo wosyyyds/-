@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>接球游戏</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #fd79a8, #fdcb6e);
+            margin: 0;
+            padding: 20px;
+        }
+        
+        .game-container {
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            text-align: center;
+            max-width: 600px;
+            width: 100%;
+        }
+        
+        h1 {
+            color: #2d3436;
+            margin-bottom: 15px;
+            font-size: 2.5rem;
+        }
+        
+        .stats-container {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            background: #636e72;
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+        
+        .controls {
+            margin: 20px 0;
+        }
+        
+        button {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 8px;
+            background: linear-gradient(45deg, #00b894, #00cec9);
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            margin: 0 10px;
+        }
+        
+        button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+        }
+        
+        button:active {
+            transform: translateY(1px);
+        }
+        
+        #start-btn {
+            background: linear-gradient(45deg, #0984e3, #74b9ff);
+        }
+        
+        #reset-btn {
+            background: linear-gradient(45deg, #e17055, #ff7675);
+        }
+        
+        #game-board {
+            border: 3px solid #636e72;
+            border-radius: 10px;
+            background: #ddd;
+            margin: 0 auto;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .paddle {
+            position: absolute;
+            bottom: 10px;
+            width: 100px;
+            height: 20px;
+            background: #0984e3;
+            border-radius: 10px;
+            left: 250px;
+        }
+        
+        .ball {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background: #e17055;
+            border-radius: 50%;
+            left: 290px;
+            top: 300px;
+        }
+        
+        .falling-item {
+            position: absolute;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 30px;
+            font-weight: bold;
+            font-size: 20px;
+        }
+        
+        .instructions {
+            color: #2d3436;
+            margin-top: 25px;
+            padding: 15px;
+            background: #ddd;
+            border-radius: 10px;
+            text-align: left;
+        }
+        
+        .instructions h2 {
+            margin-bottom: 10px;
+            color: #2d3436;
+        }
+        
+        .instructions ul {
+            list-style-type: none;
+            padding-left: 15px;
+        }
+        
+        .instructions li {
+            margin-bottom: 8px;
+            position: relative;
+            padding-left: 25px;
+        }
+        
+        .instructions li:before {
+            content: "⚽";
+            position: absolute;
+            left: 0;
+            top: -5px;
+        }
+        
+        .game-message {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin: 15px 0;
+            height: 30px;
+        }
+        
+        .win {
+            color: #00b894;
+        }
+        
+        .lose {
+            color: #e17055;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <h1>⚽ 接球游戏</h1>
+        
+        <div class="stats-container">
+            <div>分数: <span id="score">0</span></div>
+            <div>生命: <span id="lives">3</span></div>
+            <div>等级: <span id="level">1</span></div>
+        </div>
+        
+        <div class="controls">
+            <button id="start-btn">开始游戏</button>
+            <button id="reset-btn">重新开始</button>
+        </div>
+        
+        <div id="game-board" style="width: 600px; height: 400px;">
+            <div class="paddle"></div>
+            <div class="ball"></div>
+        </div>
+        
+        <div class="game-message" id="game-message"></div>
+        
+        <div class="instructions">
+            <h2>游戏说明:</h2>
+            <ul>
+                <li>使用鼠标移动或键盘方向键控制挡板</li>
+                <li>接住下落的球获得分数</li>
+                <li>让球掉落到地面会失去生命</li>
+                <li>生命值为0时游戏结束</li>
+                <li>分数越高，等级越高，球下落速度越快</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        class CatchBallGame {
+            constructor() {
+                this.gameBoard = document.getElementById('game-board');
+                this.paddle = document.querySelector('.paddle');
+                this.ball = document.querySelector('.ball');
+                this.scoreElement = document.getElementById('score');
+                this.livesElement = document.getElementById('lives');
+                this.levelElement = document.getElementById('level');
+                this.messageElement = document.getElementById('game-message');
+                this.startBtn = document.getElementById('start-btn');
+                this.resetBtn = document.getElementById('reset-btn');
+                
+                this.boardWidth = 600;
+                this.boardHeight = 400;
+                this.paddleWidth = 100;
+                this.paddleHeight = 20;
+                this.ballSize = 20;
+                
+                this.paddleX = (this.boardWidth - this.paddleWidth) / 2;
+                this.ballX = (this.boardWidth - this.ballSize) / 2;
+                this.ballY = 50;
+                this.ballSpeedX = 2;
+                this.ballSpeedY = 3;
+                
+                this.score = 0;
+                this.lives = 3;
+                this.level = 1;
+                this.gameRunning = false;
+                this.gameInterval = null;
+                this.fallingItems = [];
+                this.fallingInterval = null;
+                
+                this.initializeGame();
+                this.bindEvents();
+            }
+            
+            initializeGame() {
+                this.score = 0;
+                this.lives = 3;
+                this.level = 1;
+                this.gameRunning = false;
+                
+                this.paddleX = (this.boardWidth - this.paddleWidth) / 2;
+                this.ballX = (this.boardWidth - this.ballSize) / 2;
+                this.ballY = 50;
+                this.ballSpeedX = 2;
+                this.ballSpeedY = 3;
+                
+                this.updateStats();
+                this.messageElement.textContent = '';
+                this.messageElement.className = 'game-message';
+                
+                // 清除所有下落物品
+                this.fallingItems.forEach(item => {
+                    if (item.element && item.element.parentNode) {
+                        item.element.parentNode.removeChild(item.element);
+                    }
+                });
+                this.fallingItems = [];
+                
+                // 清除计时器
+                if (this.gameInterval) {
+                    clearInterval(this.gameInterval);
+                    this.gameInterval = null;
+                }
+                
+                if (this.fallingInterval) {
+                    clearInterval(this.fallingInterval);
+                    this.fallingInterval = null;
+                }
+                
+                this.updatePaddlePosition();
+                this.updateBallPosition();
+            }
+            
+            updateStats() {
+                this.scoreElement.textContent = this.score;
+                this.livesElement.textContent = this.lives;
+                this.levelElement.textContent = this.level;
+            }
+            
+            updatePaddlePosition() {
+                this.paddle.style.left = this.paddleX + 'px';
+            }
+            
+            updateBallPosition() {
+                this.ball.style.left = this.ballX + 'px';
+                this.ball.style.top = this.ballY + 'px';
+            }
+            
+            movePaddle(direction) {
+                if (!this.gameRunning) return;
+                
+                if (direction === 'left') {
+                    this.paddleX = Math.max(0, this.paddleX - 20);
+                } else if (direction === 'right') {
+                    this.paddleX = Math.min(this.boardWidth - this.paddleWidth, this.paddleX + 20);
+                }
+                
+                this.updatePaddlePosition();
+            }
+            
+            moveBall() {
+                this.ballX += this.ballSpeedX;
+                this.ballY += this.ballSpeedY;
+                
+                // 球与左右边界碰撞
+                if (this.ballX <= 0 || this.ballX >= this.boardWidth - this.ballSize) {
+                    this.ballSpeedX = -this.ballSpeedX;
+                }
+                
+                // 球与上边界碰撞
+                if (this.ballY <= 0) {
+                    this.ballSpeedY = -this.ballSpeedY;
+                }
+                
+                // 球与挡板碰撞
+                if (
+                    this.ballY + this.ballSize >= this.boardHeight - this.paddleHeight - 10 &&
+                    this.ballX + this.ballSize >= this.paddleX &&
+                    this.ballX <= this.paddleX + this.paddleWidth
+                ) {
+                    this.ballSpeedY = -Math.abs(this.ballSpeedY);
+                    this.score += 10;
+                    this.updateStats();
+                    this.checkLevelUp();
+                }
+                
+                // 球掉落到地面
+                if (this.ballY >= this.boardHeight) {
+                    this.loseLife();
+                }
+                
+                this.updateBallPosition();
+            }
+            
+            createFallingItem() {
+                if (!this.gameRunning) return;
+                
+                const item = document.createElement('div');
+                item.className = 'falling-item';
+                
+                // 随机选择物品类型
+                const types = ['⚽', '🏀', '🏈', '⚾', '🎾'];
+                const type = types[Math.floor(Math.random() * types.length)];
+                item.textContent = type;
+                
+                // 随机颜色
+                const colors = ['#e17055', '#0984e3', '#00b894', '#fdcb6e', '#a29bfe'];
+                const color = colors[Math.floor(Math.random() * colors.length)];
+                item.style.backgroundColor = color;
+                
+                // 随机位置
+                const x = Math.random() * (this.boardWidth - 30);
+                item.style.left = x + 'px';
+                item.style.top = '0px';
+                
+                this.gameBoard.appendChild(item);
+                
+                const fallingItem = {
+                    element: item,
+                    x: x,
+                    y: 0,
+                    speed: 2 + Math.random() * 2 + (this.level - 1) * 0.5,
+                    type: type
+                };
+                
+                this.fallingItems.push(fallingItem);
+            }
+            
+            moveFallingItems() {
+                for (let i = this.fallingItems.length - 1; i >= 0; i--) {
+                    const item = this.fallingItems[i];
+                    item.y += item.speed;
+                    item.element.style.top = item.y + 'px';
+                    
+                    // 检查是否被挡板接住
+                    if (
+                        item.y + 30 >= this.boardHeight - this.paddleHeight - 10 &&
+                        item.x + 30 >= this.paddleX &&
+                        item.x <= this.paddleX + this.paddleWidth
+                    ) {
+                        // 接住了
+                        this.score += 20;
+                        this.updateStats();
+                        this.checkLevelUp();
+                        
+                        // 移除物品
+                        item.element.parentNode.removeChild(item.element);
+                        this.fallingItems.splice(i, 1);
+                        continue;
+                    }
+                    
+                    // 掉落到地面
+                    if (item.y >= this.boardHeight) {
+                        // 移除物品
+                        item.element.parentNode.removeChild(item.element);
+                        this.fallingItems.splice(i, 1);
+                        this.loseLife();
+                    }
+                }
+            }
+            
+            checkLevelUp() {
+                const newLevel = Math.floor(this.score / 100) + 1;
+                if (newLevel > this.level) {
+                    this.level = newLevel;
+                    this.updateStats();
+                }
+            }
+            
+            loseLife() {
+                this.lives--;
+                this.updateStats();
+                
+                if (this.lives <= 0) {
+                    this.endGame(false);
+                }
+            }
+            
+            endGame(isWin) {
+                this.gameRunning = false;
+                
+                if (this.gameInterval) {
+                    clearInterval(this.gameInterval);
+                    this.gameInterval = null;
+                }
+                
+                if (this.fallingInterval) {
+                    clearInterval(this.fallingInterval);
+                    this.fallingInterval = null;
+                }
+                
+                if (isWin) {
+                    this.messageElement.textContent = '恭喜你，赢得游戏！';
+                    this.messageElement.classList.add('win');
+                } else {
+                    this.messageElement.textContent = '游戏结束！';
+                    this.messageElement.classList.add('lose');
+                }
+            }
+            
+            gameLoop() {
+                if (!this.gameRunning) return;
+                
+                this.moveBall();
+            }
+            
+            fallingLoop() {
+                if (!this.gameRunning) return;
+                
+                this.moveFallingItems();
+            }
+            
+            startGame() {
+                if (this.gameRunning) return;
+                
+                this.gameRunning = true;
+                this.gameInterval = setInterval(() => this.gameLoop(), 16); // 约60FPS
+                this.fallingInterval = setInterval(() => this.fallingLoop(), 50);
+                
+                // 定期生成下落物品
+                setInterval(() => {
+                    if (this.gameRunning) {
+                        this.createFallingItem();
+                    }
+                }, 1000 + Math.random() * 2000);
+            }
+            
+            bindEvents() {
+                // 鼠标控制
+                this.gameBoard.addEventListener('mousemove', (e) => {
+                    if (!this.gameRunning) return;
+                    
+                    const rect = this.gameBoard.getBoundingClientRect();
+                    const mouseX = e.clientX - rect.left;
+                    this.paddleX = Math.max(0, Math.min(this.boardWidth - this.paddleWidth, mouseX - this.paddleWidth / 2));
+                    this.updatePaddlePosition();
+                });
+                
+                // 键盘控制
+                document.addEventListener('keydown', (e) => {
+                    if (!this.gameRunning) return;
+                    
+                    if (e.key === 'ArrowLeft') {
+                        this.movePaddle('left');
+                    } else if (e.key === 'ArrowRight') {
+                        this.movePaddle('right');
+                    }
+                });
+                
+                // 按钮事件
+                this.startBtn.addEventListener('click', () => {
+                    this.startGame();
+                });
+                
+                this.resetBtn.addEventListener('click', () => {
+                    this.initializeGame();
+                });
+            }
+        }
+        
+        // 初始化游戏
+        window.addEventListener('DOMContentLoaded', () => {
+            new CatchBallGame();
+        });
+    </script>
+</body>
+</html>
